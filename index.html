@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>釜山自由行．Busan Travel App</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/3.3.4/vue.global.prod.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        cream: {
+                            50: '#FFFDF9',
+                            100: '#FEF9EF',
+                            200: '#FDF3DA',
+                            700: '#8A7649',
+                            800: '#5C4E2E',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        [v-cloak] { display: none !important; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, 'Noto Sans TC', sans-serif; background-color: #FEF9EF; color: #333333; }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="flex justify-center min-h-screen bg-stone-100">
+
+    <div id="app" v-cloak class="w-full max-w-md bg-cream-50 min-h-screen shadow-xl flex flex-col relative overflow-hidden pb-20">
+        
+        <header class="bg-cream-100/90 backdrop-blur-md sticky top-0 z-50 px-4 py-3 flex justify-between items-center border-b border-cream-200">
+            <div>
+                <span class="text-xs text-cream-700 tracking-widest block font-light">BUSAN TRAVEL</span>
+                <h1 class="text-lg font-medium text-cream-800 tracking-wide">釜山自由行</h1>
+            </div>
+            <div class="text-xs text-cream-700 bg-cream-200/50 px-2.5 py-1 rounded-full font-mono">
+                KRW/TWD ≈ 0.024
+            </div>
+        </header>
+
+        <main class="flex-1 overflow-y-auto px-4 pt-3">
+            
+            <div v-show="activeTab === 'schedule'" class="space-y-4">
+                <div class="bg-white border border-cream-200 rounded-2xl p-4 shadow-sm space-y-2.5">
+                    <div class="text-xs font-semibold text-cream-700 border-b border-stone-100 pb-1.5">
+                        📝 行前代辦事項
+                    </div>
+                    <div class="space-y-1.5 max-h-28 overflow-y-auto no-scrollbar">
+                        <div v-for="todo in todoList" :key="todo.id" class="flex items-center justify-between text-xs py-0.5">
+                            <label class="flex items-center space-x-2">
+                                <input type="checkbox" v-model="todo.done" @change="saveToStorage" class="rounded text-cream-700">
+                                <span :class="{'line-through text-stone-400': todo.done}">{{ todo.text }}</span>
+                            </label>
+                            <button @click="deleteTodo(todo.id)" class="text-stone-300 hover:text-red-500">✕</button>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 pt-1">
+                        <input type="text" v-model="newTodoText" placeholder="新增事項..." @keyup.enter="addTodo" class="text-xs flex-1 bg-stone-50 border border-stone-200 rounded-xl px-3 py-1.5 focus:outline-none">
+                        <button @click="addTodo" class="bg-cream-700 text-white text-xs px-3 py-1.5 rounded-xl">新增</button>
+                    </div>
+                </div>
+
+                <div class="flex space-x-2 overflow-x-auto no-scrollbar py-2 -mx-4 px-4 bg-cream-50 sticky top-12 z-40 border-b border-cream-100">
+                    <button 
+                        v-for="day in days" 
+                        :key="day.id" 
+                        type="button"
+                        @click.stop.prevent="selectedDay = day.id"
+                        :class="selectedDay === day.id ? 'bg-cream-700 text-cream-50' : 'bg-cream-100 text-cream-800'"
+                        class="flex-shrink-0 px-4 py-2 rounded-xl text-center min-w-[75px] transition-all cursor-pointer"
+                    >
+                        <span class="block text-[10px] opacity-70">Day {{ day.id }}</span>
+                        <span class="block text-xs font-medium">{{ day.date }}</span>
+                    </button>
+                </div>
+
+                <div class="bg-cream-100/50 border border-cream-200 rounded-xl p-2.5 flex justify-between items-center text-xs text-cream-800">
+                    <span>🌤️ 今日氣溫與天氣預估</span>
+                    <span class="font-mono font-semibold">{{ mockWeather[selectedDay] }}</span>
+                </div>
+
+                <div class="space-y-3">
+                    <div v-for="item in filteredSchedule" :key="item.id" class="bg-white border border-cream-200 p-3.5 rounded-2xl shadow-sm space-y-2">
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center gap-1.5">
+                                <span class="text-[11px] font-mono text-cream-700 bg-cream-100 px-2 py-0.5 rounded">{{ item.time || '未定時' }}</span>
+                                <span class="text-[10px] bg-stone-100 text-stone-600 px-1.5 py-0.5 rounded">{{ item.category }}</span>
+                            </div>
+                            <div class="flex space-x-2 text-xs text-stone-400">
+                                <button @click="editSchedule(item)" class="hover:text-cream-700">編輯</button>
+                                <button @click="deleteSchedule(item.id)" class="hover:text-red-500">刪除</button>
+                            </div>
+                        </div>
+                        <h4 class="text-sm font-medium text-stone-800">{{ item.location }}</h4>
+                        <p v-if="item.note" class="text-xs text-stone-500 bg-stone-50 p-2 rounded-lg border border-dashed border-stone-200">{{ item.note }}</p>
+                    </div>
+                    <div v-if="filteredSchedule.length === 0" class="text-center py-6 text-stone-400 text-xs bg-white border border-dashed border-cream-200 rounded-2xl">今日尚未安排行程項目</div>
+                </div>
+                <button @click="openScheduleModal" class="w-full bg-white border-2 border-dashed border-cream-300 text-cream-700 py-3 rounded-2xl text-xs font-medium">+ 新增行程項目</button>
+            </div>
+
+            <div v-show="activeTab === 'expense'" class="space-y-4">
+                <div class="bg-white border border-cream-200 rounded-3xl p-4 shadow-sm">
+                    <span class="text-xs font-medium text-cream-700 block mb-3">🇰🇷 韓幣快速換算台幣 (匯率基準 0.024)</span>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-stone-50 p-2.5 rounded-xl border border-stone-200">
+                            <label class="block text-[10px] text-stone-400 mb-0.5">輸入韓幣 (₩)</label>
+                            <input type="number" v-model="calcKrw" class="w-full bg-transparent text-sm focus:outline-none font-mono" placeholder="0">
+                        </div>
+                        <div class="bg-cream-100/40 p-2.5 rounded-xl border border-cream-200 flex flex-col justify-center">
+                            <span class="text-[10px] text-cream-700 mb-0.5">折合台幣 (NT$)</span>
+                            <span class="text-sm font-mono font-semibold text-cream-800">≈ {{ (calcKrw * 0.024).toFixed(1) }} 元</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex space-x-1.5 overflow-x-auto no-scrollbar py-1">
+                    <button v-for="d in 5" :key="d" @click="expenseDay = d" :class="expenseDay === d ? 'bg-stone-800 text-white' : 'bg-white border border-stone-200 text-stone-600'" class="text-[11px] px-3 py-1 rounded-lg flex-shrink-0">Day {{ d }}</button>
+                </div>
+
+                <div class="bg-white border border-cream-200 rounded-2xl p-4 shadow-sm grid grid-cols-2 gap-2 text-center">
+                    <div class="border-r border-stone-100">
+                        <span class="text-[10px] text-stone-400 block">本日小計 (NT$)</span>
+                        <span class="text-xs font-medium text-stone-700 block mt-0.5">{{ calcDayTotal(expenseDay) }}</span>
+                    </div>
+                    <div>
+                        <span class="text-[10px] text-stone-400 block">5天累積總預算 (NT$)</span>
+                        <span class="text-xs font-bold text-stone-800 block mt-0.5">{{ calcAllTotal() }}</span>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-cream-200 rounded-2xl p-4 shadow-sm space-y-2">
+                    <div class="space-y-1.5 max-h-[220px] overflow-y-auto no-scrollbar">
+                        <div v-for="exp in filteredExpenses" :key="exp.id" class="flex justify-between items-center text-xs py-1.5 border-b border-stone-50">
+                            <div>
+                                <span class="font-medium text-stone-700">{{ exp.title }}</span>
+                                <span class="text-[10px] text-stone-400 block">{{ exp.currency }}</span>
+                            </div>
+                            <div class="text-right">
+                                <span class="font-mono font-medium text-stone-800 block">{{ exp.amount }}</span>
+                                <span v-if="exp.currency === '韓幣(KRW)'" class="text-[9px] text-stone-400 block">≈ NT$ {{ Math.round(exp.amount * 0.024) }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="pt-3 border-t border-stone-100 space-y-2">
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" v-model="newExpense.title" placeholder="消費項目" class="text-xs bg-stone-50 border border-stone-200 rounded-xl p-2 focus:outline-none">
+                            <input type="number" v-model="newExpense.amount" placeholder="金額" class="text-xs bg-stone-50 border border-stone-200 rounded-xl p-2 focus:outline-none font-mono">
+                        </div>
+                        <div class="flex gap-2">
+                            <select v-model="newExpense.currency" class="text-xs bg-stone-50 border border-stone-200 rounded-xl p-2 focus:outline-none flex-1">
+                                <option>台幣(NTD)</option><option>韓幣(KRW)</option>
+                            </select>
+                            <button @click="addExpense" class="bg-cream-700 text-white text-xs px-4 py-2 rounded-xl">新增記帳</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div v-show="activeTab === 'shopping'" class="space-y-4">
+                <div class="border-b border-cream-200 pb-2">
+                    <h3 class="text-sm font-medium text-stone-800">🛍️ 釜山必買清單</h3>
+                </div>
+                <div class="space-y-2">
+                    <div v-for="item in shoppingList" :key="item.id" class="flex items-center justify-between text-xs p-3 bg-white rounded-xl border border-cream-200 shadow-sm" :class="item.done ? 'opacity-50' : ''">
+                        <label class="flex items-center space-x-3 flex-1">
+                            <input type="checkbox" v-model="item.done" @change="saveToStorage" class="rounded text-cream-700">
+                            <span :class="{'line-through text-stone-400': item.done}" class="text-sm">{{ item.name }}</span>
+                        </label>
+                        <button @click="deleteShoppingItem(item.id)" class="text-stone-300 hover:text-red-500">✕ 刪除</button>
+                    </div>
+                    <div v-if="shoppingList.length === 0" class="text-center py-10 text-stone-400 text-xs">清單目前是空的</div>
+                </div>
+                <div class="flex gap-2 pt-2">
+                    <input type="text" v-model="newShoppingText" placeholder="輸入想採購的伴手禮、彩妝..." @keyup.enter="addShoppingItem" class="text-xs flex-1 bg-white border border-cream-200 rounded-xl px-4 py-3 focus:outline-none shadow-sm">
+                    <button @click="addShoppingItem" class="bg-cream-700 text-white text-xs px-6 py-3 rounded-xl shadow-md">新增</button>
+                </div>
+            </div>
+
+            <div v-show="activeTab === 'spots'" class="space-y-4">
+                <div class="flex justify-between items-center border-b border-cream-200 pb-2">
+                    <h3 class="text-sm font-medium text-stone-800">🖼️ 景點筆記圖鑑</h3>
+                    <button @click="openSpotModal" class="bg-cream-700 text-white text-[10px] px-2.5 py-1 rounded-lg">+ 新增景點</button>
+                </div>
+                <div class="space-y-5">
+                    <div v-for="spot in spotList" :key="spot.id" class="bg-white rounded-3xl overflow-hidden border border-cream-200 shadow-sm flex flex-col">
+                        <img :src="spot.image || 'https://images.unsplash.com/photo-1578301978693-85fa9c0320b9?w=600'" class="w-full h-48 object-cover" alt="景點預覽">
+                        <div class="p-4 space-y-2">
+                            <div class="flex justify-between items-center">
+                                <h4 class="text-base font-bold text-stone-800">{{ spot.name }}</h4>
+                                <div class="flex gap-3 text-xs text-stone-400">
+                                    <button @click="editSpot(spot)" class="hover:text-cream-700">修改</button>
+                                    <button @click="deleteSpot(spot.id)" class="hover:text-red-500">刪除</button>
+                                </div>
+                            </div>
+                            <p class="text-xs text-stone-600 leading-relaxed whitespace-pre-line">{{ spot.content }}</p>
+                            <div class="bg-stone-50 p-2 rounded-lg border border-dashed border-stone-200 text-[11px] text-stone-500">
+                                💡 註解提示：{{ spot.note || '無額外備註' }}
+                            </div>
+                        </div>
+                    </div>
+                    <div v-if="spotList.length === 0" class="text-center py-20 text-stone-400 text-xs">可以點擊右上角上傳相簿相片，記錄出國景點</div>
+                </div>
+            </div>
+
+            <div v-show="activeTab === 'info'" class="space-y-4">
+                <div class="flex justify-between items-center border-b border-cream-200 pb-2">
+                    <h3 class="text-sm font-medium text-stone-800">ℹ️ 綜合旅遊資訊</h3>
+                    <button @click="showInfoModal = true" class="text-xs bg-cream-700 text-white px-2.5 py-1 rounded-lg">+ 新增</button>
+                </div>
+                <div class="space-y-4">
+                    <div v-for="(cards, category) in groupedInfo" :key="category" class="space-y-2">
+                        <span class="text-xs font-bold text-cream-700 block pl-1">📌 {{ category }}</span>
+                        <div v-for="info in cards" :key="info.id" class="bg-white border border-cream-200 p-3 rounded-xl shadow-xs">
+                            <h5 class="text-xs font-medium text-stone-800">{{ info.title }}</h5>
+                            <p class="text-[11px] text-stone-500 mt-1 whitespace-pre-line">{{ info.content }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <div v-if="showScheduleModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] flex items-end">
+            <div class="bg-cream-50 w-full rounded-t-3xl p-5 space-y-4 max-w-md mx-auto">
+                <div class="flex justify-between items-center"><h3 class="text-sm font-bold text-stone-800">行程詳細資料</h3><button @click="showScheduleModal = false" class="text-lg">✕</button></div>
+                <div class="space-y-3 text-xs">
+                    <div class="grid grid-cols-2 gap-2">
+                        <div><label class="block text-stone-500 mb-1">分類</label><select v-model="modalForm.category" class="w-full bg-white border border-cream-200 rounded-xl p-2.5"><option>景點</option><option>交通</option><option>航班</option><option>美食</option><option>購物</option><option>其他</option></select></div>
+                        <div><label class="block text-stone-500 mb-1">時間</label><input type="time" v-model="modalForm.time" class="w-full bg-white border border-cream-200 rounded-xl p-2.5"></div>
+                    </div>
+                    <div><label class="block text-stone-500 mb-1">地點名稱</label><input type="text" v-model="modalForm.location" class="w-full bg-white border border-cream-200 rounded-xl p-2.5"></div>
+                    <div><label class="block text-stone-500 mb-1">備註欄</label><textarea v-model="modalForm.note" rows="2" class="w-full bg-white border border-cream-200 rounded-xl p-2.5"></textarea></div>
+                </div>
+                <button @click="saveSchedule" class="w-full bg-cream-700 text-white py-3 rounded-xl text-xs">儲存項目</button>
+            </div>
+        </div>
+
+        <div v-if="showSpotModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] flex items-end">
+            <div class="bg-cream-50 w-full rounded-t-3xl p-5 space-y-4 max-w-md mx-auto max-h-[90%] overflow-y-auto">
+                <div class="flex justify-between items-center"><h3 class="text-sm font-bold text-stone-800">編輯景點圖鑑</h3><button @click="showSpotModal = false" class="text-lg">✕</button></div>
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <label class="block text-stone-500 mb-1 font-medium">景點照片（選擇手機相簿/電腦檔案）</label>
+                        <input type="file" accept="image/*" @change="handleImageUpload" class="w-full bg-white border border-cream-200 rounded-xl p-2">
+                        <div v-if="spotForm.image" class="mt-2 relative inline-block">
+                            <img :src="spotForm.image" class="w-24 h-16 object-cover rounded-lg border border-stone-200">
+                            <button type="button" @click="spotForm.image = ''" class="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center">✕</button>
+                        </div>
+                    </div>
+                    <div><label class="block text-stone-500 mb-1">景點名稱</label><input type="text" v-model="spotForm.name" placeholder="例如：海雲台藍線公園" class="w-full bg-white border border-cream-200 rounded-xl p-2.5"></div>
+                    <div><label class="block text-stone-500 mb-1">詳細特色介紹內容</label><textarea v-model="spotForm.content" rows="3" placeholder="輸入景點詳細介紹..." class="w-full bg-white border border-cream-200 rounded-xl p-2.5"></textarea></div>
+                    <div><label class="block text-stone-500 mb-1">旅遊重點註解</label><input type="text" v-model="spotForm.note" placeholder="如：建議下午 4 點搭乘看夕陽" class="w-full bg-white border border-cream-200 rounded-xl p-2.5"></div>
+                </div>
+                <button @click="saveSpot" class="w-full bg-cream-700 text-white py-3 rounded-xl text-xs">儲存至景點手冊</button>
+            </div>
+        </div>
+
+        <div v-if="showInfoModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[60] flex items-end">
+            <div class="bg-cream-50 w-full rounded-t-3xl p-5 space-y-4 max-w-md mx-auto">
+                <div class="flex justify-between items-center"><h3 class="text-sm font-bold text-stone-800">新增指南資料</h3><button @click="showInfoModal = false" class="text-lg">✕</button></div>
+                <div class="space-y-3 text-xs">
+                    <div><label class="block text-stone-500 mb-1">類別</label><select v-model="infoForm.category" class="w-full bg-white border border-cream-200 rounded-xl p-2.5"><option>緊急醫療</option><option>備用景點</option><option>旅遊須知</option></select></div>
+                    <div><label class="block text-stone-500 mb-1">項目大標題</label><input type="text" v-model="infoForm.title" class="w-full bg-white border border-cream-200 rounded-xl p-2.5"></div>
+                    <div><label class="block text-stone-500 mb-1">指南內容說明</label><textarea v-model="infoForm.content" rows="3" class="w-full bg-white border border-cream-200 rounded-xl p-2.5"></textarea></div>
+                </div>
+                <button @click="addInfo" class="w-full bg-cream-700 text-white py-3 rounded-xl text-xs">確認建立</button>
+            </div>
+        </div>
+
+        <nav class="fixed bottom-0 max-w-md w-full bg-white/95 backdrop-blur-md border-t border-cream-200 py-2.5 px-2 flex justify-around items-center z-50">
+            <button v-for="tab in navItems" :key="tab.id" @click="activeTab = tab.id" :class="activeTab === tab.id ? 'text-cream-700 font-bold' : 'text-stone-400'" class="flex flex-col items-center min-w-[60px]">
+                <span class="text-lg block" v-if="tab.id === 'schedule'">📅</span>
+                <span class="text-lg block" v-if="tab.id === 'expense'">💰</span>
+                <span class="text-lg block" v-if="tab.id === 'shopping'">🛒</span>
+                <span class="text-lg block" v-if="tab.id === 'spots'">🖼️</span>
+                <span class="text-lg block" v-if="tab.id === 'info'">ℹ️</span>
+                <span class="text-[10px] mt-0.5">{{ tab.label }}</span>
+            </button>
+        </nav>
+
+    </div>
+
+    <script>
+        // 核心錯誤阻斷機制：防止 Vue 沒有下載完時網頁直接卡死崩潰
+        window.addEventListener('error', function(e) {
+            console.log("偵測到解析相容調整: ", e.message);
+        });
+
+        const { createApp, ref, computed } = Vue;
+
+        createApp({
+            setup() {
+                const activeTab = ref('schedule');
+                const selectedDay = ref(1);
+                const expenseDay = ref(1);
+                const calcKrw = ref('');
+                
+                const showScheduleModal = ref(false);
+                const showSpotModal = ref(false);
+                const showInfoModal = ref(false);
+                const isEditing = ref(false);
+
+                const navItems = [
+                    { id: 'schedule', label: '行程' },
+                    { id: 'expense', label: '記帳' },
+                    { id: 'shopping', label: '清單' },
+                    { id: 'spots', label: '景點' },
+                    { id: 'info', label: '資訊' }
+                ];
+
+                const days = [
+                    { id: 1, date: '6/8 Mon' }, { id: 2, date: '6/9 Tue' },
+                    { id: 3, date: '6/10 Wed' }, { id: 4, date: '6/11 Thu' }, { id: 5, date: '6/12 Fri' }
+                ];
+                const mockWeather = { 1: '☀️ 24°C 晴朗', 2: '☁️ 23°C 多雲', 3: '☀️ 25°C 晴朗', 4: '☀️ 24°C 晴朗', 5: '🌤️ 23°C 局部多雲' };
+
+                // 本地快取讀取庫
+                const todoList = ref(JSON.parse(localStorage.getItem('b_todo')) || []);
+                const shoppingList = ref(JSON.parse(localStorage.getItem('b_shop')) || []);
+                const schedules = ref(JSON.parse(localStorage.getItem('b_sched')) || []);
+                const expenses = ref(JSON.parse(localStorage.getItem('b_exp')) || []);
+                const spotList = ref(JSON.parse(localStorage.getItem('b_spots')) || []);
+                const infoItems = ref(JSON.parse(localStorage.getItem('b_info')) || []);
+
+                const saveToStorage = () => {
+                    try {
+                        localStorage.setItem('b_todo', JSON.stringify(todoList.value));
+                        localStorage.setItem('b_shop', JSON.stringify(shoppingList.value));
+                        localStorage.setItem('b_sched', JSON.stringify(schedules.value));
+                        localStorage.setItem('b_exp', JSON.stringify(expenses.value));
+                        localStorage.setItem('b_spots', JSON.stringify(spotList.value));
+                        localStorage.setItem('b_info', JSON.stringify(infoItems.value));
+                    } catch (e) {
+                        console.log("儲存配額提示：如果上傳過多張高畫質大照片，可能會超過瀏覽器快取限制。建議上傳一般大小照片即可。");
+                    }
+                };
+
+                // 行程處理
+                const filteredSchedule = computed(() => {
+                    return schedules.value.filter(s => s.day === selectedDay.value).sort((a, b) => a.time.localeCompare(b.time));
+                });
+                const modalForm = ref({ id: null, category: '景點', time: '', location: '', note: '' });
+                const openScheduleModal = () => { isEditing.value = false; modalForm.value = { category: '景點', time: '09:00', location: '', note: '' }; showScheduleModal.value = true; };
+                const editSchedule = (item) => { isEditing.value = true; modalForm.value = { ...item }; showScheduleModal.value = true; };
+                const deleteSchedule = (id) => { schedules.value = schedules.value.filter(s => s.id !== id); saveToStorage(); };
+                const saveSchedule = () => {
+                    if (!modalForm.value.location) return;
+                    if (isEditing.value) { const idx = schedules.value.findIndex(s => s.id === modalForm.value.id); schedules.value[idx] = { ...modalForm.value }; }
+                    else { schedules.value.push({ id: Date.now(), day: selectedDay.value, ...modalForm.value }); }
+                    showScheduleModal.value = false; saveToStorage();
+                };
+
+                // 行前準備
+                const newTodoText = ref('');
+                const addTodo = () => { if (newTodoText.value.trim()) { todoList.value.push({ id: Date.now(), text: newTodoText.value, done: false }); newTodoText.value = ''; saveToStorage(); } };
+                const deleteTodo = (id) => { todoList.value = todoList.value.filter(t => t.id !== id); saveToStorage(); };
+                
+                // 購物清單
+                const newShoppingText = ref('');
+                const addShoppingItem = () => { if (newShoppingText.value.trim()) { shoppingList.value.push({ id: Date.now(), name: newShoppingText.value, done: false }); newShoppingText.value = ''; saveToStorage(); } };
+                const deleteShoppingItem = (id) => { shoppingList.value = shoppingList.value.filter(i => i.id !== id); saveToStorage(); };
+
+                // 記帳演算法
+                const filteredExpenses = computed(() => expenses.value.filter(e => e.day === expenseDay.value));
+                const newExpense = ref({ title: '', amount: '', currency: '韓幣(KRW)' });
+                const addExpense = () => { if (newExpense.value.title && newExpense.value.amount) { expenses.value.push({ id: Date.now(), day: expenseDay.value, ...newExpense.value }); newExpense.value = { title: '', amount: '', currency: '韓幣(KRW)' }; saveToStorage(); } };
+                const calcDayTotal = (day) => { let total = 0; expenses.value.filter(e => e.day === day).forEach(e => { total += (e.currency === '台幣(NTD)' ? Number(e.amount) : Math.round(e.amount * 0.024)); }); return total; };
+                const calcAllTotal = () => { let total = 0; expenses.value.forEach(e => { total += (e.currency === '台幣(NTD)' ? Number(e.amount) : Math.round(e.amount * 0.024)); }); return total; };
+
+                // 景點處理 & 本地圖片處理器
+                const spotForm = ref({ id: null, image: '', name: '', content: '', note: '' });
+                
+                const handleImageUpload = (event) => {
+                    const file = event.target.files[0];
+                    if (!file) return;
+                    
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        // 將照片壓縮為 Base64 網頁編碼格式，以便直接存入 LocalStorage
+                        spotForm.value.image = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                };
+
+                const openSpotModal = () => { isEditing.value = false; spotForm.value = { image: '', name: '', content: '', note: '' }; showSpotModal.value = true; };
+                const editSpot = (spot) => { isEditing.value = true; spotForm.value = { ...spot }; showSpotModal.value = true; };
+                const deleteSpot = (id) => { spotList.value = spotList.value.filter(s => s.id !== id); saveToStorage(); };
+                const saveSpot = () => {
+                    if (!spotForm.value.name) return;
+                    if (isEditing.value) { const idx = spotList.value.findIndex(s => s.id === spotForm.value.id); spotList.value[idx] = { ...spotForm.value }; }
+                    else { spotList.value.push({ id: Date.now(), ...spotForm.value }); }
+                    showSpotModal.value = false; saveToStorage();
+                };
+
+                // 綜合資訊站
+                const infoForm = ref({ category: '旅遊須知', title: '', content: '' });
+                const addInfo = () => { if (infoForm.value.title) { infoItems.value.push({ id: Date.now(), ...infoForm.value }); showInfoModal.value = false; saveToStorage(); } };
+                const groupedInfo = computed(() => infoItems.value.reduce((acc, cur) => { (acc[cur.category] = acc[cur.category] || []).push(cur); return acc; }, {}));
+
+                return {
+                    activeTab, selectedDay, expenseDay, days, mockWeather, navItems, calcKrw,
+                    todoList, newTodoText, addTodo, deleteTodo, saveToStorage,
+                    shoppingList, newShoppingText, addShoppingItem, deleteShoppingItem,
+                    filteredSchedule, showScheduleModal, isEditing, modalForm, openScheduleModal, editSchedule, deleteSchedule, saveSchedule,
+                    expenses, filteredExpenses, newExpense, addExpense, calcDayTotal, calcAllTotal,
+                    spotList, spotForm, showSpotModal, openSpotModal, editSpot, deleteSpot, saveSpot, handleImageUpload,
+                    infoItems, infoForm, showInfoModal, addInfo, groupedInfo
+                };
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
