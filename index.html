@@ -107,7 +107,7 @@
             <div v-if="activeTab === 'map'" class="space-y-3">
                 <div class="bg-white border border-cream-200 rounded-2xl p-4 shadow-sm space-y-2.5">
                     <div class="border-b border-stone-100 pb-2">
-                        <span class="text-xs font-bold text-stone-700 flex items-center gap-1">🧭 釜山景點指南 ＆ 雙導航系統</span>
+                        <span class="text-xs font-bold text-stone-700 flex items-center gap-1">🧭 釜山景點指南 ＆ APP直啟導航</span>
                     </div>
                     
                     <div class="space-y-3.5 max-h-[72vh] overflow-y-auto no-scrollbar">
@@ -121,17 +121,15 @@
                                     <h4 class="text-xs font-black text-stone-800 truncate">{{ spot.name }}</h4>
                                 </div>
                                 <div class="flex gap-1 flex-shrink-0">
-                                    <!-- Google 導航 -->
-                                    <a :href="'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(spot.customGoogleQuery || ('釜山 ' + spot.name))" 
-                                       target="_blank" 
+                                    <!-- Google 導航 (直接喚起 Google 地圖 APP) -->
+                                    <a :href="'googlemaps://?q=' + encodeURIComponent(spot.customGoogleQuery || ('釜山 ' + spot.name))" 
                                        class="bg-stone-100 border border-stone-200 text-stone-700 px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-0.5 shadow-3xs hover:bg-stone-200">
                                         <span>G地圖</span>
                                     </a>
-                                    <!-- Naver 導航 (更新為標準行動網頁定位 URL 格式) -->
-                                    <a :href="'https://map.naver.com/v5/search/' + encodeURIComponent(spot.customNaverQuery || spot.name)" 
-                                       target="_blank" 
-                                       class="bg-green-50 border border-green-200 text-green-700 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-0.5 shadow-3xs hover:bg-green-100">
-                                        <span>Naver</span>
+                                    <!-- Naver 導航 (🎯 升級：直接喚起 Naver Map APP 進行搜尋) -->
+                                    <a :href="'nmap://search?query=' + encodeURIComponent(spot.customNaverQuery || spot.name) + '&appname=com.busan.travelapp'" 
+                                       class="bg-green-600 border border-green-700 text-white px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-0.5 shadow-3xs hover:bg-green-700">
+                                        <span>Naver APP</span>
                                     </a>
                                 </div>
                             </div>
@@ -383,13 +381,12 @@
 
                 const tabTitle = computed(() => {
                     if (activeTab.value === 'schedule') return '釜山自由行行程表';
-                    if (activeTab.value === 'map') return '景點百寶箱 ＆ 雙導航系統';
+                    if (activeTab.value === 'map') return '景點百寶箱 ＆ APP導航';
                     if (activeTab.value === 'shopping') return '私人必買商品採購清單';
                     if (activeTab.value === 'expense') return '各天花費帳目計算';
                     return '重要住宿與求助資訊';
                 });
 
-                // 🎯 核心修正：將所有景點的 Naver 搜尋改用最精準的「韓文原名」或「經緯度與地址」，確保 100% 成功開出導航！
                 const landmarkList = ref([
                     { name: "松島海上纜車", time: "09:00 - 21:00", tips: "建議提早線上購買水晶車廂車票！", customGoogleQuery: "釜山 松島海上纜車", customNaverQuery: "송도해상케이블카" },
                     { name: "松島龍宮雲橋", time: "09:00 - 18:00", tips: "門票只需 1000 韓元，鏤空鐵橋超刺激！", customGoogleQuery: "松島龍宮雲橋", customNaverQuery: "송도용궁구름다리" },
@@ -397,31 +394,28 @@
                     { name: "白淺灘文化村", time: "24小時開放", eat: "海景咖啡廳、泡麵足浴店", buy: "文創小物", tips: "被稱為釜山的聖托里尼，建議下午來看夕陽。", customGoogleQuery: "白淺灘文化村", customNaverQuery: "흰여울문화마을" },
                     { name: "BIFF廣場", time: "10:00 - 22:00", eat: "黑糖堅果甜餅 (必吃！)", tips: "南浦洞逛街核心，買一塊黑糖餅邊走邊逛最享受。", customGoogleQuery: "BIFF廣場", customNaverQuery: "BIFF광장" },
                     { name: "Daega 豬肉湯飯", time: "24小時營業", eat: "經典豬肉湯飯", tips: "上桌後記得用蝦醬、韭菜調整湯頭濃度！", customGoogleQuery: "대가돼지국밥", customNaverQuery: "대가돼지국밥" },
-                    
-                    // 🍙 Sobok 紫菜包飯精準導航地址修復
                     { 
                         name: "Sobok 紫菜包飯 (소복국수)", 
                         time: "08:00 - 20:00", 
                         eat: "特製鮪魚紫菜包飯", 
                         tips: "海雲台熱門早餐，帶去海岸列車上吃超讚。",
                         customGoogleQuery: "Busan, Haeundae-gu, Haeundaehaebyeon-ro 298beon-gil, 29 소복국수 1층",
-                        customNaverQuery: "부산 해운대구 해운대해변로298번길 29 소복국수"
+                        customNaverQuery: "소복국수"
                     },
-                    
                     { name: "海雲台藍線公園 海岸列車", time: "09:00 - 19:00", tips: "復古列車外觀超可愛。記得提前劃位靠窗座！", customGoogleQuery: "海雲台藍線公園 尾浦車站", customNaverQuery: "해운대블루라인파크 미포정거장" },
                     { name: "海雲台31cm海鮮刀削麵", time: "11:00 - 22:00", eat: "招牌海鮮刀削麵", tips: "大碗公裝滿滿蛤蜊與貝類，湯頭鮮美微辣！", customGoogleQuery: "해운대31cm해물칼국수", customNaverQuery: "해운대31cm해물칼국수" },
                     { name: "海東龍宮寺", time: "04:30 - 20:00", tips: "韓國唯一建在海邊的寺廟，風景壯麗好拍。", customGoogleQuery: "海東龍宮寺", customNaverQuery: "해동용궁사" },
                     { name: "樂天名牌折扣購物中心 (東釜山店)", time: "10:30 - 20:30", buy: "各大品牌精品免稅", tips: "佔地極大像座希臘小鎮，超適合大血拼。", customGoogleQuery: "樂天名牌折扣購物中心 東釜山店", customNaverQuery: "롯데프리미엄아울렛 동부산점" },
                     { name: "釜山 X the SKY", time: "10:00 - 21:00", eat: "99樓全球最高星巴克", tips: "100樓高空俯瞰海雲台沙灘，夜景極美。", customGoogleQuery: "BUSAN X the SKY", customNaverQuery: "부산엑스더스카이" },
                     { name: "海雲台瓦房鱈魚湯", time: "08:00 - 20:40", eat: "清燉鱈魚湯", tips: "在地人超推的解酒神湯，白蘿蔔熬煮極清甜。", customGoogleQuery: "海雲台瓦房鱈魚湯", customNaverQuery: "해운대기와집대구탕" },
-                    { name: "海雲台海水浴場", time: "24小時開放", tips: "漫步吹海風看大樓夜景，氣氛一絕。", customGoogleQuery: "海雲台海水浴場", customNaverQuery: "해운대해수욕장" },
+                    { name: "海雲台海水浴場", time: "24小時開放", tips: "漫步吹海風看大樓夜景，氣氛一絕。", customGoogleQuery: "해雲台海水浴場", customNaverQuery: "해운대해수욕장" },
                     { name: "英子麵店 (西面店)", time: "10:00 - 21:00", eat: "手工炸醬麵、糖醋肉", tips: "西面站超級平價的在地麵食，CP值頂天！", customGoogleQuery: "영자면옥 본점", customNaverQuery: "영자면옥 본점" },
                     { name: "西面地下街", time: "10:00 - 22:00", buy: "正韓襪子、平價服飾、彩妝文創", tips: "衣服超親民，多帶點現金更好殺價。", customGoogleQuery: "西面地下商街", customNaverQuery: "서면지하상가" },
                     { name: "老花園烤肉 (西面總店)", time: "16:00 - 01:00", eat: "熟成五花肉、烤豬皮", tips: "代烤服務，肉汁完美鎖住，排隊名店！", customGoogleQuery: "고정점", customNaverQuery: "고정점" },
                     { name: "Olive Young (西面旗艦店)", time: "10:00 - 22:30", buy: "精華液、面膜、熱門美妝", tips: "滿15,000韓元可當場退稅，記得帶護照！", customGoogleQuery: "올리브영 서면타운점", customNaverQuery: "올리브영 서면타운점" }
                 ]);
 
-                const todoList = ref(JSON.parse(localStorage.getItem('busan_todo_v7')) || [
+                const todoList = ref(JSON.parse(localStorage.getItem('busan_todo_v8')) || [
                     { id: 1, text: '護照', done: false }, { id: 2, text: '牙膏牙刷', done: false },
                     { id: 3, text: '換洗衣物', done: false }, { id: 4, text: '充電線轉接頭', done: false },
                     { id: 5, text: '室內拖鞋', done: false }, { id: 6, text: '香水耳環手鍊化妝品', done: false },
@@ -429,15 +423,15 @@
                 ]);
 
                 const filteredSchedule = computed(() => staticSchedules.filter(item => item.day === selectedDay.value));
-                const shoppingList = ref(JSON.parse(localStorage.getItem('busan_shopping_v7')) || [
+                const shoppingList = ref(JSON.parse(localStorage.getItem('busan_shopping_v8')) || [
                     { id: 1, name: 'Olive Young 精華液 / 面膜', done: false, image: null },
                     { id: 2, name: '當地伴手禮零食', done: false, image: null }
                 ]);
-                const expenses = ref(JSON.parse(localStorage.getItem('busan_expenses_v7')) || []);
+                const expenses = ref(JSON.parse(localStorage.getItem('busan_expenses_v8')) || []);
 
                 const staticInfoStation = {
                     "住宿與飯店細節": [
-                        { id: 1, title: "🏨 Brown Suites Busan（브라운스위特 부산）", content: "● 地址：\n48751 부산광역시 동구 충장대로 160 협성마리나G7\n\n● 交通與入住：\n釜山車站 10 號出口順著天橋直達。\n採自助密碼鎖 / QRcode 入住。" }
+                        { id: 1, title: "🏨 Brown Suites Busan（브라운스위트 부산）", content: "● 地址：\n48751 부산광역시 동구 충장대로 160 협성마리나G7\n\n● 交通與入住：\n釜山車站 10 號出口順著天橋直達。\n採自助密碼鎖 / QRcode 入住。" }
                     ],
                     "🚨 緊急與求助應變電話": [
                         { id: 2, title: "📞 韓國在地求助熱線", content: "● 警察：112 / 火災急救：119\n● 旅遊諮詢與中文翻譯：1330" },
@@ -446,9 +440,9 @@
                 };
 
                 const saveToStorage = () => {
-                    localStorage.setItem('busan_todo_v7', JSON.stringify(todoList.value));
-                    localStorage.setItem('busan_shopping_v7', JSON.stringify(shoppingList.value));
-                    localStorage.setItem('busan_expenses_v7', JSON.stringify(expenses.value));
+                    localStorage.setItem('busan_todo_v8', JSON.stringify(todoList.value));
+                    localStorage.setItem('busan_shopping_v8', JSON.stringify(shoppingList.value));
+                    localStorage.setItem('busan_expenses_v8', JSON.stringify(expenses.value));
                 };
 
                 const convertCurrency = (type) => {
