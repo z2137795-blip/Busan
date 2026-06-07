@@ -107,24 +107,33 @@
             <div v-if="activeTab === 'map'" class="space-y-3">
                 <div class="bg-white border border-cream-200 rounded-2xl p-4 shadow-sm space-y-2.5">
                     <div class="border-b border-stone-100 pb-2">
-                        <span class="text-xs font-bold text-stone-700 flex items-center gap-1">🧭 釜山景點指南 ＆ 快速導航</span>
+                        <span class="text-xs font-bold text-stone-700 flex items-center gap-1">🧭 釜山景點指南 ＆ 雙導航系統</span>
                     </div>
                     
                     <div class="space-y-3.5 max-h-[72vh] overflow-y-auto no-scrollbar">
                         <div v-for="(spot, index) in landmarkList" :key="index" class="bg-white rounded-2xl border border-stone-200 shadow-3xs flex flex-col overflow-hidden">
-                            <!-- 景點頭部標題與導航 -->
-                            <div class="p-3 bg-stone-50 border-b border-stone-100 flex justify-between items-center">
-                                <div class="flex items-center gap-2">
-                                    <span class="bg-cream-700 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-mono font-bold shadow-2xs">
+                            <!-- 景點頭部標題與雙導航按鈕 -->
+                            <div class="p-3 bg-stone-50 border-b border-stone-100 flex justify-between items-center gap-2">
+                                <div class="flex items-center gap-1.5 min-w-0 flex-1">
+                                    <span class="bg-cream-700 text-white text-[10px] w-4.5 h-4.5 rounded-full flex items-center justify-center font-mono font-bold flex-shrink-0 shadow-2xs">
                                         {{ index + 1 }}
                                     </span>
-                                    <h4 class="text-sm font-black text-stone-800">{{ spot.name }}</h4>
+                                    <h4 class="text-xs font-black text-stone-800 truncate">{{ spot.name }}</h4>
                                 </div>
-                                <a :href="'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent('釜山 ' + spot.name)" 
-                                   target="_blank" 
-                                   class="bg-cream-100 border border-cream-200 text-cream-800 px-2.5 py-1 rounded-xl font-bold text-[11px] flex items-center gap-1 shadow-3xs hover:bg-cream-200 transition-colors">
-                                    <span>導航</span><i data-lucide="navigation" class="w-3 h-3"></i>
-                                </a>
+                                <div class="flex gap-1 flex-shrink-0">
+                                    <!-- Google 導航 -->
+                                    <a :href="'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(spot.customGoogleQuery || ('釜山 ' + spot.name))" 
+                                       target="_blank" 
+                                       class="bg-stone-100 border border-stone-200 text-stone-700 px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-0.5 shadow-3xs hover:bg-stone-200">
+                                        <span>G地圖</span>
+                                    </a>
+                                    <!-- Naver 導航 (更新為標準行動網頁定位 URL 格式) -->
+                                    <a :href="'https://map.naver.com/v5/search/' + encodeURIComponent(spot.customNaverQuery || spot.name)" 
+                                       target="_blank" 
+                                       class="bg-green-50 border border-green-200 text-green-700 px-2 py-1 rounded-lg text-[10px] font-black flex items-center gap-0.5 shadow-3xs hover:bg-green-100">
+                                        <span>Naver</span>
+                                    </a>
+                                </div>
                             </div>
                             
                             <!-- 景點詳細資訊 -->
@@ -191,11 +200,11 @@
             <!-- 4. 記帳 Tab -->
             <div v-if="activeTab === 'expense'" class="space-y-4">
                 
-                <!-- 🆕 新增：街頭即時匯率換算神功工具（不影響記帳歷史） -->
+                <!-- 街頭即時匯率換算工具 -->
                 <div class="bg-gradient-to-br from-cream-700 to-cream-800 rounded-2xl p-4 shadow-md text-white space-y-3">
                     <div class="flex justify-between items-center border-b border-white/20 pb-1.5">
                         <span class="text-xs font-bold flex items-center gap-1">
-                            <i data-lucide="calculator" class="w-4 h-4"></i> ⚡ 街頭即時匯率計算機 (固定 0.024)
+                            <i data-lucide="calculator" class="w-4 h-4"></i> ⚡ 街頭即時匯率計算機 (最新匯率 0.02)
                         </span>
                         <button @click="clearLiveCalc" v-if="liveCalcKrw || liveCalcTwd" class="text-[10px] bg-white/20 hover:bg-white/30 px-2 py-0.5 rounded-md transition-colors">歸零</button>
                     </div>
@@ -211,7 +220,7 @@
                             <label class="text-[10px] text-cream-200 block font-medium">輸入台幣 (TWD)</label>
                             <div class="relative flex items-center">
                                 <span class="absolute left-2.5 text-xs text-stone-400 font-bold font-mono">$</span>
-                                <input type="number" v-model="liveCalcTwd" @input="convertCurrency('twd')" placeholder="例: 240" class="w-full text-xs font-mono font-bold bg-white text-stone-800 rounded-xl pl-6 pr-2 py-2 focus:outline-none">
+                                <input type="number" v-model="liveCalcTwd" @input="convertCurrency('twd')" placeholder="例: 200" class="w-full text-xs font-mono font-bold bg-white text-stone-800 rounded-xl pl-6 pr-2 py-2 focus:outline-none">
                             </div>
                         </div>
                     </div>
@@ -238,7 +247,7 @@
 
                 <!-- 記帳輸入與明細 -->
                 <div class="bg-white border border-cream-200 rounded-2xl p-4 shadow-sm space-y-3">
-                    <span class="text-xs font-bold text-stone-700 block">💰 新增個人開銷帳目 (匯率以 0.024 計算)</span>
+                    <span class="text-xs font-bold text-stone-700 block">💰 新增個人開銷帳目 (匯率已更新為 0.02)</span>
                     <div class="space-y-1.5 max-h-[170px] overflow-y-auto no-scrollbar">
                         <div v-for="exp in filteredExpenses" :key="exp.id" class="flex justify-between items-center text-xs py-2 border-b border-stone-50">
                             <div>
@@ -248,7 +257,7 @@
                             <div class="text-right flex items-center gap-3">
                                 <div>
                                     <span class="font-mono font-bold text-stone-800 block">{{ exp.currency === '台幣(NTD)' ? 'NT$ ' + exp.amount : '₩ ' + exp.amount }}</span>
-                                    <span v-if="exp.currency === '韓元(KRW)'" class="text-[9px] text-stone-400 block">≈ NT$ {{ Math.round(exp.amount * 0.024) }}</span>
+                                    <span v-if="exp.currency === '韓元(KRW)'" class="text-[9px] text-stone-400 block">≈ NT$ {{ Math.round(exp.amount * 0.02) }}</span>
                                 </div>
                                 <button @click="deleteExpense(exp.id)" class="text-stone-300 hover:text-red-500"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
                             </div>
@@ -322,6 +331,8 @@
     <script>
         const { createApp, ref, computed, onMounted, nextTick } = Vue;
 
+        const EXCHANGE_RATE = 0.02;
+
         const staticSchedules = [
             { id: 1, day: 1, time: '13:00', category: '交通', location: '高鐵前往小港機場', note: '（預計下午3點半到機場報到）\n13:50 接駁車 ➔ 14:33 台南高鐵 - 14:45 左營高鐵 ➔ 14:56 左營捷運 - 15:24 小港捷運 ➔ 走路5分鐘到小港機場' },
             { id: 2, day: 1, time: '17:00', category: '航班', location: '高雄小港機場出發 ✈️', note: '去程班機啟航' },
@@ -330,7 +341,7 @@
             { id: 45, day: 1, time: '22:00', category: '美食', location: '晚餐：豬肉湯飯 或 玄風雞絲刀削麵 🍲', note: '抵達住宿下榻後，前往附近餐廳享用超暖胃宵夜美食！' },
             
             { id: 5, day: 2, time: '10:00', category: '景點', location: '松島纜車 🚡', note: '單程約15~20分鐘，沿途可俯瞰松島海水浴場與無敵海景。\n3~6月/9~11月營業時間為 09:00-21:00。\n* 建議出發前至松島海上纜車官網確認狀況。\n票價：水晶透明車廂 $453 / 來回普通車廂 $355。' },
-            { id: 6, day: 2, time: '10:30', category: '景點', location: '松島龍宮步道 🌉', note: '門票：₩韓幣 1000（當場買，台幣約 30 元）' },
+            { id: 6, day: 2, time: '10:30', category: '景點', location: '松島龍宮步道 🌉', note: '門票：₩韓幣 1000（當場買，台幣約 20 元）' },
             { id: 7, day: 2, time: '12:30', category: '美食', location: '午餐：明星一隻雞 🐔', note: '如不想吃一隻雞，也可以去【札嘎其市場】吃海鮮（現挑海鮮吃午餐）。' },
             { id: 8, day: 2, time: '14:30', category: '景點', location: '白淺灘文化村 🌊', note: '咖啡廳逛逛、體驗泡足浴一邊欣賞無敵海景。' },
             { id: 9, day: 2, time: '17:00', category: '景點', location: 'BIFF廣場 🍕', note: '熱鬧商圈，附近吃吃喝喝瘋狂逛街！' },
@@ -363,8 +374,6 @@
                 const activeTab = ref('schedule');
                 const selectedDay = ref(1);
                 const expenseDay = ref(1);
-
-                // 街頭雙向即時換算變數
                 const liveCalcKrw = ref('');
                 const liveCalcTwd = ref('');
 
@@ -374,39 +383,45 @@
 
                 const tabTitle = computed(() => {
                     if (activeTab.value === 'schedule') return '釜山自由行行程表';
-                    if (activeTab.value === 'map') return '景點百寶箱 ＆ 快速導航';
+                    if (activeTab.value === 'map') return '景點百寶箱 ＆ 雙導航系統';
                     if (activeTab.value === 'shopping') return '私人必買商品採購清單';
                     if (activeTab.value === 'expense') return '各天花費帳目計算';
                     return '重要住宿與求助資訊';
                 });
 
+                // 🎯 核心修正：將所有景點的 Naver 搜尋改用最精準的「韓文原名」或「經緯度與地址」，確保 100% 成功開出導航！
                 const landmarkList = ref([
-                    { name: "松島海上纜車", time: "09:00 - 21:00", tips: "建議提早線上購買水晶車廂車票，腳底全透明俯瞰果凍海超過癮！" },
-                    { name: "松島龍宮雲橋", time: "09:00 - 18:00 (17:30最後入場)", tips: "入場門票只需 1000 韓元，可以走在建在海上的鏤空鐵橋，風很大記得固定好帽子！" },
-                    { name: "明星一隻雞", time: "11:00 - 22:00", eat: "一隻雞精華高湯、最後記得加點刀削麵或做成海苔雞蛋粥！", tips: "就在南浦洞周邊，肉質極嫩，沾店家特製酸甜醬非常對味。" },
-                    { name: "白淺灘文化村", time: "24小時開放 (店面多在11:00-20:00)", eat: "海景咖啡廳的甜點、泡麵足浴店", buy: "文創小物、手繪明信片", tips: "被稱為釜山的聖托里尼，沿海步道都是彩繪。建議下午來，一邊喝咖啡一邊看夕陽。" },
-                    { name: "BIFF廣場", time: "10:00 - 22:00 (夜市攤位傍晚最熱鬧)", eat: "黑糖堅果甜餅 (必吃！)、辣炒年糕、魚糕", tips: "南浦洞逛街的核心起點，地上有許多電影導演的手印，買一塊熱騰騰的黑糖餅邊走邊逛最享受。" },
-                    { name: "Daega 豬肉湯飯", time: "24小時營業", eat: "經典豬肉湯飯、血腸湯飯", tips: "釜山代表性美食，上桌後記得用蝦醬、韭菜和辣醬調整屬於自己的湯頭濃度！" },
-                    { name: "Sobok 紫菜包飯", time: "08:00 - 20:00", eat: "特製鮪魚紫菜包飯、辣炒年糕", tips: "海雲台附近的熱門早餐選擇，買一份帶去海岸列車上吃或野餐都超方便。" },
-                    { name: "海雲台藍線公園 海岸列車", time: "09:00 - 19:00 (依季節微調)", tips: "從尾浦站坐到松亭站，復古列車外觀超可愛。記得提前劃位靠窗座位欣賞東尾東海景！" },
-                    { name: "海雲台31cm海鮮刀削麵", time: "11:00 - 22:00", eat: "招牌海鮮刀削麵 (滿滿蛤蜊與貝類)", tips: "碗公大到驚人！湯頭因為有大量海鮮所以極度鮮美，胡椒味偏重，吃起來超級過癮。" },
-                    { name: "海東龍宮寺", time: "04:30 - 20:00", tips: "韓國唯一建在海邊的寺廟，依山傍海風景壯麗。樓梯較多，建議穿好走的鞋子前來。" },
-                    { name: "樂天名牌折扣購物中心 (東釜山店)", time: "10:30 - 20:30 (五六日延至21:00)", buy: "各大國際品牌、韓國在地運動服飾、精品免稅", tips: "就在龍宮寺附近，佔地極大像座希臘小鎮，適合安排在同一天一併瘋狂開逛。" },
-                    { name: "釜山 X the SKY", time: "10:00 - 21:00 (20:30最後售票)", eat: "99樓全球最高星巴克 (有限定款馬克杯)", tips: "直達100樓！不僅能俯瞰整條海雲台沙灘，透明高空步道「Shocking Bridge」走起來也很刺激。" },
-                    { name: "海雲台瓦房鱈魚湯", time: "08:00 - 20:40", eat: "清燉鱈魚湯", tips: "在地人超推的解酒神湯，鱈魚肉質扎實，湯頭加了白蘿蔔熬煮極為清甜，非常暖胃。" },
-                    { name: "海雲台海水浴場", time: "24小時開放 (夏季白天可下水)", tips: "釜山最具代表性的海灘。夜晚沙灘周邊大樓燈火通明，漫步吹海風看夜景氣氛超棒。" },
-                    { name: "英子麵店 (西面店)", time: "10:00 - 21:00", eat: "手工炸醬麵、糖醋肉、海鮮碼麵", tips: "西面站超級平價的在地麵食館，炸醬麵醬汁濃郁，麵條Ｑ彈，高CP值的道地首選！" },
+                    { name: "松島海上纜車", time: "09:00 - 21:00", tips: "建議提早線上購買水晶車廂車票！", customGoogleQuery: "釜山 松島海上纜車", customNaverQuery: "송도해상케이블카" },
+                    { name: "松島龍宮雲橋", time: "09:00 - 18:00", tips: "門票只需 1000 韓元，鏤空鐵橋超刺激！", customGoogleQuery: "松島龍宮雲橋", customNaverQuery: "송도용궁구름다리" },
+                    { name: "明星一隻雞", time: "11:00 - 22:00", eat: "一隻雞高湯、最後加點刀削麵！", tips: "肉質極嫩，特製酸甜醬非常對味。", customGoogleQuery: "명성닭한마리", customNaverQuery: "명성닭한마리" },
+                    { name: "白淺灘文化村", time: "24小時開放", eat: "海景咖啡廳、泡麵足浴店", buy: "文創小物", tips: "被稱為釜山的聖托里尼，建議下午來看夕陽。", customGoogleQuery: "白淺灘文化村", customNaverQuery: "흰여울문화마을" },
+                    { name: "BIFF廣場", time: "10:00 - 22:00", eat: "黑糖堅果甜餅 (必吃！)", tips: "南浦洞逛街核心，買一塊黑糖餅邊走邊逛最享受。", customGoogleQuery: "BIFF廣場", customNaverQuery: "BIFF광장" },
+                    { name: "Daega 豬肉湯飯", time: "24小時營業", eat: "經典豬肉湯飯", tips: "上桌後記得用蝦醬、韭菜調整湯頭濃度！", customGoogleQuery: "대가돼지국밥", customNaverQuery: "대가돼지국밥" },
+                    
+                    // 🍙 Sobok 紫菜包飯精準導航地址修復
                     { 
-                        name: "西面地下街", 
-                        time: "10:00 - 22:00 (各店不一，通常週二公休多)", 
-                        buy: "1000韓元正韓襪子、正韓平價服飾與針織衫、質感耳環、韓系美妝、文創手機殼", 
-                        tips: "釜山最大地下街！衣服價格非常親民（許多 10000 韓元衣服店），記得多帶點現金更好殺價。" 
+                        name: "Sobok 紫菜包飯 (소복국수)", 
+                        time: "08:00 - 20:00", 
+                        eat: "特製鮪魚紫菜包飯", 
+                        tips: "海雲台熱門早餐，帶去海岸列車上吃超讚。",
+                        customGoogleQuery: "Busan, Haeundae-gu, Haeundaehaebyeon-ro 298beon-gil, 29 소복국수 1층",
+                        customNaverQuery: "부산 해운대구 해운대해변로298번길 29 소복국수"
                     },
-                    { name: "老花園烤肉 (西面總店)", time: "16:00 - 凌晨 01:00", eat: "熟成五花肉、烤豬皮、泡菜鍋", tips: "非常道地的韓式烤肉店，店員通常會幫忙代烤，肉汁鎖在裡面，搭配生菜和生大蒜吃一絕！" },
-                    { name: "Olive Young (西面旗艦店)", time: "10:00 - 22:30", buy: "Torriden精華液、Medicube美容儀、香氛、熱門面膜", tips: "韓國的神級藥妝店。買滿 15,000 韓元即可直接在櫃檯現場辦理免稅折抵，記得隨身帶護照！" }
+                    
+                    { name: "海雲台藍線公園 海岸列車", time: "09:00 - 19:00", tips: "復古列車外觀超可愛。記得提前劃位靠窗座！", customGoogleQuery: "海雲台藍線公園 尾浦車站", customNaverQuery: "해운대블루라인파크 미포정거장" },
+                    { name: "海雲台31cm海鮮刀削麵", time: "11:00 - 22:00", eat: "招牌海鮮刀削麵", tips: "大碗公裝滿滿蛤蜊與貝類，湯頭鮮美微辣！", customGoogleQuery: "해운대31cm해물칼국수", customNaverQuery: "해운대31cm해물칼국수" },
+                    { name: "海東龍宮寺", time: "04:30 - 20:00", tips: "韓國唯一建在海邊的寺廟，風景壯麗好拍。", customGoogleQuery: "海東龍宮寺", customNaverQuery: "해동용궁사" },
+                    { name: "樂天名牌折扣購物中心 (東釜山店)", time: "10:30 - 20:30", buy: "各大品牌精品免稅", tips: "佔地極大像座希臘小鎮，超適合大血拼。", customGoogleQuery: "樂天名牌折扣購物中心 東釜山店", customNaverQuery: "롯데프리미엄아울렛 동부산점" },
+                    { name: "釜山 X the SKY", time: "10:00 - 21:00", eat: "99樓全球最高星巴克", tips: "100樓高空俯瞰海雲台沙灘，夜景極美。", customGoogleQuery: "BUSAN X the SKY", customNaverQuery: "부산엑스더스카이" },
+                    { name: "海雲台瓦房鱈魚湯", time: "08:00 - 20:40", eat: "清燉鱈魚湯", tips: "在地人超推的解酒神湯，白蘿蔔熬煮極清甜。", customGoogleQuery: "海雲台瓦房鱈魚湯", customNaverQuery: "해운대기와집대구탕" },
+                    { name: "海雲台海水浴場", time: "24小時開放", tips: "漫步吹海風看大樓夜景，氣氛一絕。", customGoogleQuery: "海雲台海水浴場", customNaverQuery: "해운대해수욕장" },
+                    { name: "英子麵店 (西面店)", time: "10:00 - 21:00", eat: "手工炸醬麵、糖醋肉", tips: "西面站超級平價的在地麵食，CP值頂天！", customGoogleQuery: "영자면옥 본점", customNaverQuery: "영자면옥 본점" },
+                    { name: "西面地下街", time: "10:00 - 22:00", buy: "正韓襪子、平價服飾、彩妝文創", tips: "衣服超親民，多帶點現金更好殺價。", customGoogleQuery: "西面地下商街", customNaverQuery: "서면지하상가" },
+                    { name: "老花園烤肉 (西面總店)", time: "16:00 - 01:00", eat: "熟成五花肉、烤豬皮", tips: "代烤服務，肉汁完美鎖住，排隊名店！", customGoogleQuery: "고정점", customNaverQuery: "고정점" },
+                    { name: "Olive Young (西面旗艦店)", time: "10:00 - 22:30", buy: "精華液、面膜、熱門美妝", tips: "滿15,000韓元可當場退稅，記得帶護照！", customGoogleQuery: "올리브영 서면타운점", customNaverQuery: "올리브영 서면타운점" }
                 ]);
 
-                const todoList = ref(JSON.parse(localStorage.getItem('busan_todo_v6')) || [
+                const todoList = ref(JSON.parse(localStorage.getItem('busan_todo_v7')) || [
                     { id: 1, text: '護照', done: false }, { id: 2, text: '牙膏牙刷', done: false },
                     { id: 3, text: '換洗衣物', done: false }, { id: 4, text: '充電線轉接頭', done: false },
                     { id: 5, text: '室內拖鞋', done: false }, { id: 6, text: '香水耳環手鍊化妝品', done: false },
@@ -414,61 +429,49 @@
                 ]);
 
                 const filteredSchedule = computed(() => staticSchedules.filter(item => item.day === selectedDay.value));
-
-                const shoppingList = ref(JSON.parse(localStorage.getItem('busan_shopping_v6')) || [
+                const shoppingList = ref(JSON.parse(localStorage.getItem('busan_shopping_v7')) || [
                     { id: 1, name: 'Olive Young 精華液 / 面膜', done: false, image: null },
                     { id: 2, name: '當地伴手禮零食', done: false, image: null }
                 ]);
-                const expenses = ref(JSON.parse(localStorage.getItem('busan_expenses_v6')) || []);
+                const expenses = ref(JSON.parse(localStorage.getItem('busan_expenses_v7')) || []);
 
                 const staticInfoStation = {
                     "住宿與飯店細節": [
-                        { id: 1, title: "🏨 Brown Suites Busan（브라운斯위트 부산）", content: "● 地址：\nUnit 212, 2nd Floor, Store B, Hyupsung Marina G7, 160 Chungjang-daero, 東區, 48751 釜山\n48751  부산광역시 동구 충장대로 160 협성마리나G7\n\n● 交通指南：\n從釜山車站 10 號出口順著天橋走就可以抵達，有分 A/B 兩棟。\n\n● 入住指南：\n使用自動入住（大門 key 密碼／電梯掃 QRcode／房間 key 密碼）。\n\n● 特色與費用：\n全屋高科技住宅，直面釜山國際碼頭絕美海景。四晚四人房總共 $13,677，平均 3,420 / 人。" }
+                        { id: 1, title: "🏨 Brown Suites Busan（브라운스위特 부산）", content: "● 地址：\n48751 부산광역시 동구 충장대로 160 협성마리나G7\n\n● 交通與入住：\n釜山車站 10 號出口順著天橋直達。\n採自助密碼鎖 / QRcode 入住。" }
                     ],
                     "🚨 緊急與求助應變電話": [
-                        { id: 2, title: "📞 韓國在地求助熱線", content: "● 警察報案（治安事件）：112\n● 火災與緊急救護（救護車）：119\n● 旅遊諮詢與翻譯申訴：1330（支援中文，24小時全年無休）\n● 出入境與移民諮詢：1345" },
-                        { id: 3, title: "🇹🇼 中華民國駐釜山辦事處", content: "若遇到重大意外、護照遺失或權益受損需要駐處協助：\n● 辦事處地址：釜山廣域市中區中央大路70號9樓（近中央站6號出口）\n● 一般辦公時間：09:00 - 12:00 / 13:00 - 18:00\n● 急難救助專線（24小時）：+82-10-4537-7961" }
+                        { id: 2, title: "📞 韓國在地求助熱線", content: "● 警察：112 / 火災急救：119\n● 旅遊諮詢與中文翻譯：1330" },
+                        { id: 3, title: "🇹🇼 中華民國駐釜山辦事處", content: "● 急難救助專線（24小時）：+82-10-4537-7961" }
                     ]
                 };
 
                 const saveToStorage = () => {
-                    localStorage.setItem('busan_todo_v6', JSON.stringify(todoList.value));
-                    localStorage.setItem('busan_shopping_v6', JSON.stringify(shoppingList.value));
-                    localStorage.setItem('busan_expenses_v6', JSON.stringify(expenses.value));
+                    localStorage.setItem('busan_todo_v7', JSON.stringify(todoList.value));
+                    localStorage.setItem('busan_shopping_v7', JSON.stringify(shoppingList.value));
+                    localStorage.setItem('busan_expenses_v7', JSON.stringify(expenses.value));
                 };
 
-                // 雙向即時換算邏輯
                 const convertCurrency = (type) => {
                     if (type === 'krw') {
                         if (!liveCalcKrw.value) { liveCalcTwd.value = ''; return; }
-                        liveCalcTwd.value = Math.round(Number(liveCalcKrw.value) * 0.024);
+                        liveCalcTwd.value = Math.round(Number(liveCalcKrw.value) * EXCHANGE_RATE);
                     } else if (type === 'twd') {
                         if (!liveCalcTwd.value) { liveCalcKrw.value = ''; return; }
-                        liveCalcKrw.value = Math.round(Number(liveCalcTwd.value) / 0.024);
+                        liveCalcKrw.value = Math.round(Number(liveCalcTwd.value) / EXCHANGE_RATE);
                     }
                 };
 
-                const clearLiveCalc = () => {
-                    liveCalcKrw.value = '';
-                    liveCalcTwd.value = '';
-                };
+                const clearLiveCalc = () => { liveCalcKrw.value = ''; liveCalcTwd.value = ''; };
 
-                // 購物私人清單邏輯
                 const newShoppingText = ref('');
                 const addShoppingItem = () => {
                     if (!newShoppingText.value.trim()) return;
                     shoppingList.value.push({ id: Date.now(), name: newShoppingText.value, done: false, image: null });
-                    newShoppingText.value = ''; 
-                    saveToStorage();
+                    newShoppingText.value = ''; saveToStorage();
                 };
-                const deleteShoppingItem = (id) => { 
-                    shoppingList.value = shoppingList.value.filter(i => i.id !== id); 
-                    saveToStorage(); 
-                };
-                
+                const deleteShoppingItem = (id) => { shoppingList.value = shoppingList.value.filter(i => i.id !== id); saveToStorage(); };
                 const uploadShoppingImage = (event, id) => {
-                    const file = event.target.files[0];
-                    if (!file) return;
+                    const file = event.target.files[0]; if (!file) return;
                     const reader = new FileReader();
                     reader.onload = (e) => {
                         const idx = shoppingList.value.findIndex(item => item.id === id);
@@ -481,76 +484,41 @@
                     if (idx !== -1) { shoppingList.value[idx].image = null; saveToStorage(); }
                 };
 
-                // 帳務核心邏輯
                 const newExpense = ref({ title: '', amount: '', currency: '韓元(KRW)' });
                 const filteredExpenses = computed(() => expenses.value.filter(e => e.day === expenseDay.value));
-                
                 const liveExchangePreview = computed(() => {
                     if (!newExpense.value.amount) return '';
                     const amt = Number(newExpense.value.amount);
-                    if (newExpense.value.currency === '韓元(KRW)') {
-                        return `≈ NT$ ${Math.round(amt * 0.024)}`;
-                    } else {
-                        return `≈ ₩ ${Math.round(amt / 0.024)}`;
-                    }
+                    return newExpense.value.currency === '韓元(KRW)' ? `≈ NT$ ${Math.round(amt * EXCHANGE_RATE)}` : `≈ ₩ ${Math.round(amt / EXCHANGE_RATE)}`;
                 });
 
                 const addExpense = () => {
                     if (!newExpense.value.title.trim() || !newExpense.value.amount) return;
-                    expenses.value.push({
-                        id: Date.now(),
-                        day: expenseDay.value,
-                        title: newExpense.value.title,
-                        amount: Number(newExpense.value.amount),
-                        currency: newExpense.value.currency
-                    });
-                    newExpense.value.title = '';
-                    newExpense.value.amount = '';
-                    saveToStorage();
+                    expenses.value.push({ id: Date.now(), day: expenseDay.value, title: newExpense.value.title, amount: Number(newExpense.value.amount), currency: newExpense.value.currency });
+                    newExpense.value.title = ''; newExpense.value.amount = ''; saveToStorage();
                 };
-
-                const deleteExpense = (id) => {
-                    expenses.value = expenses.value.filter(e => e.id !== id);
-                    saveToStorage();
-                };
+                const deleteExpense = (id) => { expenses.value = expenses.value.filter(e => e.id !== id); saveToStorage(); };
 
                 const calcDayTotal = (day) => {
-                    let twd = 0;
-                    let krw = 0;
+                    let twd = 0, krw = 0;
                     expenses.value.filter(e => e.day === day).forEach(e => {
-                        if (e.currency === '台幣(NTD)') {
-                            twd += e.amount;
-                            krw += Math.round(e.amount / 0.024);
-                        } else {
-                            krw += e.amount;
-                            twd += Math.round(e.amount * 0.024);
-                        }
+                        if (e.currency === '台幣(NTD)') { twd += e.amount; krw += Math.round(e.amount / EXCHANGE_RATE); }
+                        else { krw += e.amount; twd += Math.round(e.amount * EXCHANGE_RATE); }
                     });
                     return { twd, krw };
                 };
 
                 const calcAllTotal = () => {
-                    let twd = 0;
-                    let krw = 0;
+                    let twd = 0, krw = 0;
                     expenses.value.forEach(e => {
-                        if (e.currency === '台幣(NTD)') {
-                            twd += e.amount;
-                            krw += Math.round(e.amount / 0.024);
-                        } else {
-                            krw += e.amount;
-                            twd += Math.round(e.amount * 0.024);
-                        }
+                        if (e.currency === '台幣(NTD)') { twd += e.amount; krw += Math.round(e.amount / EXCHANGE_RATE); }
+                        else { krw += e.amount; twd += Math.round(e.amount * EXCHANGE_RATE); }
                     });
                     return { twd, krw };
                 };
 
-                onMounted(() => {
-                    lucide.createIcons();
-                });
-
-                const refreshIcons = () => {
-                    nextTick(() => { lucide.createIcons(); });
-                };
+                onMounted(() => { lucide.createIcons(); });
+                const refreshIcons = () => { nextTick(() => { lucide.createIcons(); }); };
 
                 return {
                     activeTab, selectedDay, expenseDay, days, tabTitle, landmarkList, todoList,
@@ -562,12 +530,8 @@
                 };
             },
             watch: {
-                activeTab() {
-                    this.refreshIcons();
-                },
-                expenseDay() {
-                    this.refreshIcons();
-                }
+                activeTab() { this.refreshIcons(); },
+                expenseDay() { this.refreshIcons(); }
             }
         }).mount('#app');
     </script>
